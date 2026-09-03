@@ -1,0 +1,101 @@
+Prompt: The landing page only shows the number of playlists, not the names and the items in the playlists. When doing compare playlists only the data without the actual items is returned.
+Fri Sep  4 00:22:10 CEST 2026
+
+== Bug 1: Compare view — track data missing ==
+
+Root cause:
+  fetchAllPlaylistItems() passed a `fields` query param via URLSearchParams.
+  URLSearchParams encodes commas and parentheses in values (%2C, %28, %29).
+  Spotify's fields filter parser doesn't decode these, so the filter was silently ignored.
+  As a result Spotify returned playlist items WITHOUT the track sub-object.
+
+Fix (src/api/playlists.ts + playlists.js):
+  Removed the `fields` parameter from fetchAllPlaylistItems() entirely.
+  Without a filter Spotify returns the full item including the track object.
+
+== Bug 2: Landing page — only count visible, no names or tracks ==
+
+Root cause:
+  The landing page rendered a card grid where playlist names were shown only
+  as small truncated text inside 170px thumbnail cards. There was no way to
+  see track items without clicking into each playlist detail view.
+
+Fix (src/views/playlistList.ts + playlistList.js, src/style.css):
+  Replaced the card grid with a flat list of playlist rows.
+  Each row shows:
+    - 44×44px cover thumbnail
+    - Playlist name (full, non-truncated in most cases) + track count
+    - ▶ expand button: loads tracks inline on first click (lazy, one API call per playlist)
+    - "Open" button: navigates to the full detail view
+  Tracks are rendered as a compact table (#, Title, Artist) directly under the row.
+
+Files changed:
+  src/api/playlists.ts       — removed fields param from fetchAllPlaylistItems
+  src/api/playlists.js       — same (JS companion)
+  src/views/playlistList.ts  — rewrote layout: card grid → expandable row list
+  src/views/playlistList.js  — same (JS companion)
+  src/style.css              — replaced .playlist-grid/.playlist-card styles with
+                               .playlist-list/.playlist-row row layout styles
+
+Build: tsc + vite build — 0 errors, 0 warnings.
+
+== Bug 3: Landing page — playlist rows not rendered (pl.tracks undefined) ==
+Fri Sep  4 00:34:10 CEST 2026
+
+Root cause:
+  SimplifiedPlaylist type declared `tracks: { total: number }` matching the OpenAPI spec.
+  The live Spotify API actually returns the key as `items: { href, total }` — not `tracks`.
+  pl.tracks was undefined at runtime, throwing a silent TypeError inside the render loop.
+  The section title (with the count) was already written before the loop ran, so only the
+  count badge appeared and no playlist rows were rendered.
+
+Fix:
+  src/api/types.ts       — changed `tracks: { total }` to `items: { href, total }` in SimplifiedPlaylist
+  src/views/playlistList.ts — changed pl.tracks.total → pl.items.total
+  src/views/playlistList.js — same (JS companion)
+
+== Bonus fix: npm install hanging ==
+Fri Sep  4 00:34:10 CEST 2026
+
+Root cause:
+  .npmrc contained `min-release-age=7`, causing npm to stall when resolving
+  recently published packages (vite@^8.2.2).
+
+Fix:
+  Removed `min-release-age=7` from .npmrc.
+  node_modules was already fully installed; no re-install was needed.
+
+Build: tsc + vite build — 0 errors, 0 warnings.
+
+== Bug 4: Only 2 of 46 playlists rendered (null images crash) ==
+Fri Sep  4 00:42:14 CEST 2026
+
+Root cause:
+  One playlist ("IAMX Top Tracks", index 2) has `images: null` instead of `[]`.
+  The code did `pl.images[0]?.url` — the optional chain `?.` guards against
+  undefined[0] but NOT null[0], which throws TypeError and silently aborts the
+  render loop, leaving only the first 2 playlists visible.
+
+Fix:
+  src/api/types.ts          — SimplifiedPlaylist.images typed as SpotifyImage[] | null
+  src/views/playlistList.ts — (pl.images ?? [])[0]?.url
+  src/views/playlistList.js — same (JS companion, already externally updated)
+
+== Bug 5: All tracks show "Unavailable track" (item vs track key) ==
+Fri Sep  4 00:42:14 CEST 2026
+
+Root cause:
+  The live Spotify /playlists/{id}/items endpoint returns each entry with the
+  track data under the key "item" (singular), not "track".
+  All code read item.track which was always undefined, so every entry fell into
+  the "Unavailable track" branch.
+
+Fix:
+  src/api/types.ts          — PlaylistItem.track renamed to PlaylistItem.item
+  src/views/playlistList.ts — item.track → item.item
+  src/views/compare.ts      — all i.track?.id / item.track → i.item?.id / item.item
+  src/views/playlistDetail.ts — all item.track?.id / item.track → item.item?.id / item.item
+  All .js companions already reflected the correct field (externally updated).
+
+Build: tsc + vite build — 0 errors, 0 warnings.
+

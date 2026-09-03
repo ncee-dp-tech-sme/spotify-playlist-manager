@@ -1,0 +1,23 @@
+The user can only edit or see details from their owned playlists, so I want you to mark the playlist that are not owned by the current user as "Owned by another user" and remove the option to show details. Also you did not implement the "remove duplicates" option
+Fri Sep  4 00:54:36 CEST 2026
+
+# Task Outcome: Playlist Ownership Protection & Duplicate Removal
+
+## Summary of Changes
+1. **User Profile & Ownership Detection**:
+   - Added `getCurrentUserProfile()` (`GET /me`) in `src/api/playlists.ts` and `SpotifyUserProfile` interface in `src/api/types.ts`.
+   - Updated `src/views/playlistList.ts` to fetch current user profile and compare playlist owner ID with the current user ID.
+
+2. **Unowned Playlists Display**:
+   - Playlists not owned by the active user are now tagged with a badge `"Owned by another user"`.
+   - Disabled track expansion and removed the `"Open"` (playlist detail view) button for unowned playlists.
+   - Filtered comparison playlist selectors in `src/views/compare.ts` to owned playlists so users only compare and edit playlists they have permission to modify.
+
+3. **Remove Duplicates Feature**:
+   - Added `spotifyDelete` in `src/api/client.ts` to support authenticated `DELETE /playlists/{id}/items`.
+   - Added `removePlaylistItems` and `removeDuplicateTracksFromPlaylist` in `src/api/playlists.ts`.
+   - Updated `src/views/playlistDetail.ts` to display a `"Remove Duplicates"` button with redundant duplicate counts.
+   - Included user confirmation prompt before executing deletion and automatic table refreshing upon completion.
+
+4. **Validation**:
+   - `npm run build` (`tsc && vite build`) passed with zero errors.

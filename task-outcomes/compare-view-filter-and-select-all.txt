@@ -1,0 +1,21 @@
+In the Compare Playlists view, add an option to remove the songs In Both from the view so it will be easier to add from one to the other playlist. Also add a select all option and make sure, moving from one playlist to the other does not remove the items from the original playlist.
+Fri Sep  4 01:04:33 CEST 2026
+
+# Task Outcome: Compare View Enhancements
+
+## Summary of Changes
+1. **Hide Shared Songs ("In both") Toggle**:
+   - Added a "Hide songs in both playlists" checkbox toggle in [`src/views/compare.ts`](src/views/compare.ts:139).
+   - Toggling hides/shows all rows marked `.row-both` instantly and ensures refreshed columns maintain the filter preference.
+
+2. **Select All & Deselect All Controls**:
+   - Added `Select All` and `Deselect All` buttons to the headers of both Playlist A and Playlist B columns in [`src/views/compare.ts`](src/views/compare.ts:157).
+   - Buttons automatically select or clear checkboxes only for eligible transfer tracks in their respective column.
+
+3. **Non-Destructive Transfer (Copy Semantics)**:
+   - Verified that `handleTransfer` only invokes `addTracksToPlaylist` on the destination playlist and does not delete songs from the source playlist.
+   - Updated button label wording to "Copy selected from A → ..." and "Copy selected from B → ..." for clarity.
+
+4. **Standards & Code Quality Compliance**:
+   - Added script changelog entries and function comments with timestamps from `date`.
+   - Verified production build using `npm run build` (`tsc && vite build`), which completed with zero errors.

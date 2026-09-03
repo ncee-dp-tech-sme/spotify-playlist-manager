@@ -1,0 +1,18 @@
+You used the wrong API to retrieve all playlists.  See below part of thee api schema
+open-api-schema.yaml:1406-1442
+```
+ /me/playlists:
+    get:
+      tags:
+        - Playlists
+        - Library
+      operationId: get-a-list-of-current-users-playlists
+      summary: |
+        Get Current User's Playlists
+      description: |
+        Get a list of the playlists owned or followed by the current Spotify
+        user.
+```
+Fri Sep  4 00:07:58 CEST 2026
+
+Outcome: Kept the schema-defined GET /me/playlists endpoint and corrected its page limit from 100 to 50. The generic paginator now accepts an endpoint-specific page size; playlist-item retrieval retains its supported limit of 100. Validation: npm run build passed (TypeScript compilation and Vite production build).
